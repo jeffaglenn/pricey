@@ -20,6 +20,9 @@ npm link
 
 # Test scraping (development)
 node index.js scrape "https://example-retailer.com/product"
+
+# Debug mode (shows fingerprint randomization)
+node index.js scrape --debug "https://example-retailer.com/product"
 ```
 
 ## Architecture
@@ -27,6 +30,7 @@ node index.js scrape "https://example-retailer.com/product"
 ### Core Components
 - **`index.js`** - CLI interface using Commander.js with three main commands: `scrape`, `list`, `check`
 - **`scraper.js`** - ProductScraper class using Playwright WebKit with extensive anti-detection techniques
+- **`fingerprint-randomizer.js`** - FingerprintRandomizer class for browser fingerprint randomization
 - **`database.js`** - Database class wrapping SQLite operations for product storage
 
 ### Data Flow
@@ -49,12 +53,19 @@ products (
 
 ## Anti-Detection Strategy
 
-Uses WebKit instead of Chrome with comprehensive Safari spoofing:
-- Navigator properties (webdriver removal, platform, vendor, plugins)
-- WebGL fingerprint spoofing (Apple GPU identifiers)
+### Browser Fingerprint Randomization
+Uses `FingerprintRandomizer` class to randomize browser properties on each session:
+- **Context-level**: User agent, viewport, locale, timezone, geolocation, headers
+- **JavaScript-level**: Screen properties, hardware info, WebGL, canvas, audio context
+- **Dynamic properties**: CPU cores, memory, touch points, plugin configurations
+- **Timing randomization**: Subtle Date.now() and performance timing variations
+
+### Safari-Specific Spoofing
+- WebKit engine (less targeted than Chrome)
+- Navigator properties (webdriver removal, platform, vendor)
 - Safari-specific window.safari object
-- Human-like delays (4-6 seconds) and realistic headers
-- Non-headless mode for better success rates
+- Apple-specific WebGL identifiers
+- Human-like delays and realistic headers
 
 ## Price Extraction Methods
 
@@ -80,7 +91,17 @@ The scraper uses multiple fallback strategies:
 ## Development Notes
 
 - Database auto-created on first run as `products.db`
-- Runs in non-headless mode for debugging and better success rates
+- Runs in headless mode by default (can be changed in scraper.js)
 - WebKit/Safari engine chosen for better anti-bot evasion than Chrome
+- Fingerprint randomization generates unique browser signature per session
+- Debug mode available with `--debug` flag to see randomization details
 - No external APIs or services required - fully self-contained
 - Best performance on macOS for Safari spoofing authenticity
+
+## Debug Mode
+
+Use `--debug` flag to see detailed fingerprint randomization:
+- User agent and viewport variations
+- Hardware specifications (CPU, memory, screen)
+- WebGL vendor/renderer information
+- Plugin configurations and geolocation data

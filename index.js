@@ -15,16 +15,17 @@ program
   .command('scrape')
   .description('Scrape a product from a URL')
   .argument('<url>', 'Product URL to scrape')
-  .action(async (url) => {
-    const scraper = new ProductScraper();
+  .option('-d, --debug', 'Show detailed fingerprint randomization info')
+  .action(async (url, options) => {
+    const scraper = new ProductScraper({ showFingerprint: options.debug });
     const db = new Database();
-    
+
     try {
       console.log(`Scraping product from: ${url}`);
-      
+
       await db.init();
       const productData = await scraper.scrapeProduct(url);
-      
+
       if (productData && productData.title && productData.price) {
         const productId = await db.saveProduct(productData);
         console.log('✅ Product scraped successfully:');
@@ -37,7 +38,7 @@ program
           console.log('Raw data found:', productData);
         }
       }
-      
+
     } catch (error) {
       console.error('❌ Error:', error.message);
     } finally {
@@ -51,16 +52,16 @@ program
   .description('List all scraped products')
   .action(async () => {
     const db = new Database();
-    
+
     try {
       await db.init();
       const products = await db.getAllProducts();
-      
+
       if (products.length === 0) {
         console.log('No products found. Use "pricey scrape <url>" to add some!');
         return;
       }
-      
+
       console.log(`\n📦 Found ${products.length} products:\n`);
       products.forEach((product, index) => {
         console.log(`${index + 1}. ${product.title}`);
@@ -69,7 +70,7 @@ program
         console.log(`   Scraped: ${new Date(product.scraped_at).toLocaleString()}`);
         console.log();
       });
-      
+
     } catch (error) {
       console.error('❌ Error:', error.message);
     } finally {
@@ -83,11 +84,11 @@ program
   .argument('<url>', 'Product URL to check')
   .action(async (url) => {
     const db = new Database();
-    
+
     try {
       await db.init();
       const product = await db.getProductByUrl(url);
-      
+
       if (product) {
         console.log('✅ Product already in database:');
         console.log(`   Title: ${product.title}`);
@@ -96,7 +97,7 @@ program
       } else {
         console.log('❌ Product not found in database');
       }
-      
+
     } catch (error) {
       console.error('❌ Error:', error.message);
     } finally {

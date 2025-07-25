@@ -1,8 +1,11 @@
 const { webkit } = require('playwright');
+const FingerprintRandomizer = require('./fingerprint-randomizer');
 
 class ProductScraper {
-  constructor() {
+  constructor(options = {}) {
     this.browser = null;
+    this.fingerprintRandomizer = new FingerprintRandomizer();
+    this.showFingerprint = options.showFingerprint !== false; // Default to true
   }
 
   async init() {
@@ -24,26 +27,21 @@ class ProductScraper {
       await this.init();
     }
 
-    const contextOptions = {
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-      viewport: { width: 1366, height: 768 },
-      locale: 'en-US',
-      timezoneId: 'America/New_York',
-      permissions: ['geolocation'],
-      geolocation: { longitude: 12.492507, latitude: 41.889938 },
-      extraHTTPHeaders: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0'
-      }
-    };
+    // Generate randomized context options
+    const contextOptions = this.fingerprintRandomizer.generateContextOptions();
+    
+    // Log randomized fingerprint details
+    if (this.showFingerprint) {
+      console.log('\n🎭 Randomized Browser Fingerprint:');
+      console.log(`   User Agent: ${contextOptions.userAgent}`);
+      console.log(`   Viewport: ${contextOptions.viewport.width}x${contextOptions.viewport.height}`);
+      console.log(`   Locale: ${contextOptions.locale}`);
+      console.log(`   Timezone: ${contextOptions.timezoneId}`);
+      console.log(`   Geolocation: ${contextOptions.geolocation.latitude.toFixed(4)}, ${contextOptions.geolocation.longitude.toFixed(4)}`);
+      console.log(`   Color Scheme: ${contextOptions.colorScheme}`);
+      console.log('   Headers:', Object.keys(contextOptions.extraHTTPHeaders).join(', '));
+      console.log('');
+    }
 
     const context = await this.browser.newContext(contextOptions);
 
@@ -65,50 +63,36 @@ class ProductScraper {
     });
 
     try {
-      // Safari/WebKit stealth techniques
-      await page.addInitScript(() => {
-        // Remove webdriver property
-        Object.defineProperty(navigator, 'webdriver', {
-          get: () => undefined,
-        });
+      // Apply randomized browser fingerprint
+      const fingerprintScript = this.fingerprintRandomizer.generateFingerprintScript();
+      await page.addInitScript(fingerprintScript);
+      
+      // Log detailed fingerprint information
+      if (this.showFingerprint) {
+        const fpDetails = this.fingerprintRandomizer.getLastFingerprintDetails();
+        console.log('🔧 JavaScript-Level Randomization:');
+        console.log(`   Screen Resolution: ${fpDetails.screenRes.width}x${fpDetails.screenRes.height}`);
+        console.log(`   Color Depth: ${fpDetails.colorDepth}-bit`);
+        console.log(`   CPU Cores: ${fpDetails.hardwareConcurrency}`);
+        console.log(`   Device Memory: ${fpDetails.deviceMemory}GB`);
+        console.log(`   Touch Points: ${fpDetails.maxTouchPoints}`);
+        console.log(`   WebGL Vendor: ${fpDetails.webglVendor}`);
+        console.log(`   WebGL Renderer: ${fpDetails.webglRenderer}`);
+        console.log(`   Browser Plugins: ${fpDetails.pluginCount} plugins`);
+        console.log('');
+      }
 
-        // Safari-specific spoofing
+      // Add Safari-specific properties that don't change
+      await page.addInitScript(() => {
+        // Safari-specific properties
         Object.defineProperty(navigator, 'platform', {
           get: () => 'MacIntel'
         });
 
-        // Spoof Safari plugins
-        const safariPlugins = [
-          { name: 'WebKit built-in PDF', filename: 'WebKit built-in PDF' },
-          { name: 'PDF Viewer', filename: 'pdf.js' },
-          { name: 'Chrome PDF Viewer', filename: 'pdf' }
-        ];
-
-        Object.defineProperty(navigator, 'plugins', {
-          get: () => safariPlugins
-        });
-
-        // Spoof Safari vendor
         Object.defineProperty(navigator, 'vendor', {
           get: () => 'Apple Computer, Inc.'
         });
 
-        // Remove Chrome-specific properties
-        delete window.chrome;
-
-        // Spoof WebGL for Safari
-        const getParameter = WebGLRenderingContext.getParameter;
-        WebGLRenderingContext.prototype.getParameter = function(parameter) {
-          if (parameter === 37445) {
-            return 'Apple Inc.';
-          }
-          if (parameter === 37446) {
-            return 'Apple GPU';
-          }
-          return getParameter(parameter);
-        };
-
-        // Safari-specific properties
         Object.defineProperty(window, 'safari', {
           value: {
             pushNotification: {
