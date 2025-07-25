@@ -1,0 +1,21 @@
+{
+  "name": "pricey",
+  "version": "1.0.0",
+  "main": "index.js",
+  "bin": {
+    "pricey": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "commander": "^14.0.0",
+    "playwright": "^1.54.1",
+    "sqlite3": "^5.1.7"
+  }
+}
