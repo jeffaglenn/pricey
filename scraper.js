@@ -127,7 +127,7 @@ class ProductScraper {
       }
 
       // Add random delays to mimic human behavior
-      await page.waitForTimeout(Math.random() * 2000 + 2000);
+      await page.waitForTimeout(Math.random() * 2000 + 4000);
 
       // Check if we got blocked
       const pageTitle = await page.title();
@@ -165,7 +165,9 @@ class ProductScraper {
             '.final-price-red-color',
             '.price-digit',
             '.productNameComponent',
-            '[data-qaid="pdpProductPriceSale"]'
+            '[data-qaid="pdpProductPriceSale"]',
+            '.priceToPay',
+            '#pdpPrice'
           ],
           title: [
             '[data-test="product-title"]',
