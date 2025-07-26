@@ -5,7 +5,7 @@ class ProductScraper {
   constructor(options = {}) {
     this.browser = null;
     this.fingerprintRandomizer = new FingerprintRandomizer();
-    this.showFingerprint = options.showFingerprint !== false; // Default to true
+    this.showFingerprint = options.showFingerprint || false; // Default to false
   }
 
   async init() {
