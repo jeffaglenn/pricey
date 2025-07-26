@@ -6,11 +6,12 @@ class ProductScraper {
     this.browser = null;
     this.fingerprintRandomizer = new FingerprintRandomizer();
     this.showFingerprint = options.showFingerprint || false; // Default to false
+    this.headless = options.headless !== false; // Default to true
   }
 
   async init() {
     this.browser = await webkit.launch({
-      headless: true
+      headless: this.headless
       // WebKit/Safari has minimal configuration options
       // Most stealth techniques are handled in the page context
     });
@@ -29,7 +30,7 @@ class ProductScraper {
 
     // Generate randomized context options
     const contextOptions = this.fingerprintRandomizer.generateContextOptions();
-    
+
     // Log randomized fingerprint details
     if (this.showFingerprint) {
       console.log('\n🎭 Randomized Browser Fingerprint:');
@@ -66,7 +67,7 @@ class ProductScraper {
       // Apply randomized browser fingerprint
       const fingerprintScript = this.fingerprintRandomizer.generateFingerprintScript();
       await page.addInitScript(fingerprintScript);
-      
+
       // Log detailed fingerprint information
       if (this.showFingerprint) {
         const fpDetails = this.fingerprintRandomizer.getLastFingerprintDetails();
@@ -151,7 +152,9 @@ class ProductScraper {
             '.productNameComponent',
             '[data-qaid="pdpProductPriceSale"]',
             '.priceToPay',
-            '#pdpPrice'
+            '#pdpPrice',
+            '[data-qa="productName"]',
+            '.sales'
           ],
           title: [
             '[data-test="product-title"]',
