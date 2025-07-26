@@ -16,7 +16,7 @@ program
   .description('Scrape a product from a URL')
   .argument('<url>', 'Product URL to scrape')
   .option('-d, --debug', 'Show detailed fingerprint randomization info')
-  .option('-nh, --no-headless', 'Run browser in visible mode (default: headless)')
+  .option('--no-headless', 'Run browser in visible mode (default: headless)')
   .action(async (url, options) => {
     const scraper = new ProductScraper({
       showFingerprint: options.debug,

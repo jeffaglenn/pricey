@@ -124,6 +124,7 @@ class ProductScraper {
       const productData = await page.evaluate(() => {
         const selectors = {
           price: [
+            '.ProductPricing>span',
             '[data-test="product-price"]',
             '[data-test="product-price-value"]',
             '[data-testid="price"]',
