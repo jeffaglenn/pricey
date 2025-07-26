@@ -76,12 +76,20 @@ node index.js check "https://www.target.com/p/lego-product/123"
 - Realistic browsing behavior patterns
 
 
-## Next Steps
+## Future Enhancements
 
+### Near-term
 - Price history tracking and notifications
+- Enhanced retailer-specific handling
 - Web interface for monitoring
-- Support for more e-commerce sites
 - Automated price drop alerts
+
+### High-Volume Scenarios
+- Proxy rotation support (for users scraping >10 requests/hour)
+- Concurrent multi-product monitoring
+- Enterprise-grade rate limiting bypass
+
+*Note: Current implementation targets casual price monitoring (1-2 requests/hour) and doesn't require proxy infrastructure.*
 
 ## Legal Note
 

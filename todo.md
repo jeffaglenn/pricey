@@ -2,12 +2,6 @@
 
 ## 1. Enhanced Anti-Detection Systems
 
-### Proxy Support
-- [ ] Add proxy rotation functionality to scraper.js
-- [ ] Implement residential proxy integration (consider services like Bright Data, Oxylabs)
-- [ ] Add proxy health checking and automatic failover
-- [ ] Create proxy configuration management system
-
 ### Session Management
 - [ ] Implement cookie persistence between scraping sessions
 - [ ] Add session storage for maintaining login states
@@ -92,7 +86,6 @@
 
 ### User Configuration
 - [ ] Add user-configurable scraping settings
-- [ ] Create proxy configuration interface
 - [ ] Add rate limiting configuration options
 - [ ] Implement scraping schedule configuration
 
@@ -114,7 +107,6 @@
 
 **Phase 1 (Critical - Address Immediate Issues):**
 - [x] Browser fingerprint randomization (✅ COMPLETED)
-- [ ] Proxy rotation support
 - [ ] Retailer detection system
 - [ ] Enhanced error handling and retry logic
 - [ ] Amazon, Target, Best Buy specific configurations
@@ -130,6 +122,7 @@
 - [ ] Comprehensive testing framework
 - [x] Advanced fingerprint randomization (✅ COMPLETED)
 - [ ] Performance optimization
+- [ ] Proxy rotation support (for high-volume scenarios >10 requests/hour)
 
 ## Recently Completed ✅
 
@@ -140,6 +133,23 @@
 - **Files added**: `fingerprint-randomizer.js` with comprehensive randomization logic
 - **Integration**: Fully integrated into `scraper.js` with optional logging
 
+## Proxy Support - Future Enhancement
+
+**Current Status**: Not implemented - current usage pattern (1-2 requests/hour) doesn't require proxy infrastructure.
+
+**When to implement:**
+- High-volume scraping (>10 requests/hour per site)
+- IP blocking occurs despite fingerprint randomization
+- Concurrent multi-product monitoring
+- Geographic price comparison needs
+
+**Proxy Implementation Tasks** (moved to Phase 3):
+- [ ] Add proxy rotation functionality to scraper.js
+- [ ] Implement residential proxy integration (consider services like Bright Data, Oxylabs)
+- [ ] Add proxy health checking and automatic failover
+- [ ] Create proxy configuration management system
+- [ ] Create proxy configuration interface
+
 ## Implementation Notes
 
 - Start with the most problematic retailers first
@@ -148,3 +158,4 @@
 - Consider splitting scraper.js into multiple retailer-specific modules
 - Add comprehensive logging for debugging new implementations
 - **Fingerprint randomization significantly improved success rates** - continue building on this foundation
+- **Proxy support deferred** - focus on retailer-specific solutions first

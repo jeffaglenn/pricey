@@ -97,6 +97,8 @@ The scraper uses multiple fallback strategies:
 - Debug mode available with `--debug` flag to see randomization details
 - No external APIs or services required - fully self-contained
 - Best performance on macOS for Safari spoofing authenticity
+- **Proxy support planned but not implemented** - current design targets low-volume usage (1-2 requests/hour)
+- Proxy rotation becomes beneficial for high-volume scenarios (>10 requests/hour) or when IP blocking occurs
 
 ## Debug Mode
 
