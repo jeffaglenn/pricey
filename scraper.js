@@ -1,35 +1,49 @@
-const { webkit } = require('playwright');
 const FingerprintRandomizer = require('./fingerprint-randomizer');
+const RetryHandler = require('./retry-handler');
+const BrowserManager = require('./browser-manager');
 
 class ProductScraper {
   constructor(options = {}) {
-    this.browser = null;
     this.fingerprintRandomizer = new FingerprintRandomizer();
-    this.showFingerprint = options.showFingerprint || false; // Default to false
-    this.headless = options.headless !== false; // Default to true
-  }
-
-  async init() {
-    this.browser = await webkit.launch({
-      headless: this.headless
-      // WebKit/Safari has minimal configuration options
-      // Most stealth techniques are handled in the page context
+    this.browserManager = new BrowserManager({
+      headless: options.headless !== false,
+      fingerprintRandomizer: this.fingerprintRandomizer
     });
+    this.retryHandler = new RetryHandler({
+      maxRetries: options.maxRetries || 2, // Reduced since we have 3 browsers
+      baseDelay: options.baseDelay || 1000
+    });
+    this.showFingerprint = options.showFingerprint || false; // Default to false
   }
 
   async close() {
-    if (this.browser) {
-      await this.browser.close();
-    }
+    await this.browserManager.closeAll();
   }
 
   async scrapeProduct(url) {
-    if (!this.browser) {
-      await this.init();
+    try {
+      return await this.retryHandler.execute(async (attempt) => {
+        return await this._scrapeProductAttempt(url, attempt);
+      });
+    } catch (error) {
+      console.error('❌ All browser attempts failed:', error.message);
+      return null;
+    }
+  }
+
+  async _scrapeProductAttempt(url, attempt = 0) {
+    // Get browser type for this attempt
+    const browserType = this.browserManager.getBrowserType(attempt);
+    const browser = await this.browserManager.getBrowser(browserType);
+
+    if (attempt > 0) {
+      console.log(`🔄 Attempt ${attempt + 1} using ${browserType.toUpperCase()} for ${url}`);
+    } else {
+      console.log(`🔍 Scraping with ${browserType.toUpperCase()}: ${url}`);
     }
 
-    // Generate randomized context options
-    const contextOptions = this.fingerprintRandomizer.generateContextOptions();
+    // Generate browser-specific context options
+    const contextOptions = this.browserManager.generateContextOptions(browserType, attempt);
 
     // Log randomized fingerprint details
     if (this.showFingerprint) {
@@ -44,7 +58,7 @@ class ProductScraper {
       console.log('');
     }
 
-    const context = await this.browser.newContext(contextOptions);
+    const context = await browser.newContext(contextOptions);
 
     const page = await context.newPage();
     let apiData = null;
@@ -64,14 +78,14 @@ class ProductScraper {
     });
 
     try {
-      // Apply randomized browser fingerprint
-      const fingerprintScript = this.fingerprintRandomizer.generateFingerprintScript();
+      // Apply browser-specific fingerprint
+      const fingerprintScript = this.browserManager.generateFingerprintScript(browserType, attempt);
       await page.addInitScript(fingerprintScript);
 
       // Log detailed fingerprint information
       if (this.showFingerprint) {
         const fpDetails = this.fingerprintRandomizer.getLastFingerprintDetails();
-        console.log('🔧 JavaScript-Level Randomization:');
+        console.log(`🔧 ${browserType.toUpperCase()} Fingerprint Randomization:`);
         console.log(`   Screen Resolution: ${fpDetails.screenRes.width}x${fpDetails.screenRes.height}`);
         console.log(`   Color Depth: ${fpDetails.colorDepth}-bit`);
         console.log(`   CPU Cores: ${fpDetails.hardwareConcurrency}`);
@@ -83,33 +97,18 @@ class ProductScraper {
         console.log('');
       }
 
-      // Add Safari-specific properties that don't change
-      await page.addInitScript(() => {
-        // Safari-specific properties
-        Object.defineProperty(navigator, 'platform', {
-          get: () => 'MacIntel'
-        });
-
-        Object.defineProperty(navigator, 'vendor', {
-          get: () => 'Apple Computer, Inc.'
-        });
-
-        Object.defineProperty(window, 'safari', {
-          value: {
-            pushNotification: {
-              toString: () => '[object SafariRemoteNotification]'
-            }
-          }
-        });
+      // Navigate with retry logic
+      const retry = this.retryHandler.createScrapingRetry();
+      await retry.navigation(async (attempt) => {
+        const waitUntil = attempt === 0 ? 'domcontentloaded' : 'load';
+        const timeout = 15000 + (attempt * 5000); // Increase timeout on retries
+        
+        if (attempt > 0) {
+          console.log(`   Navigation attempt ${attempt + 1} using '${waitUntil}' strategy`);
+        }
+        
+        await page.goto(url, { waitUntil, timeout });
       });
-
-      // Try multiple navigation strategies
-      try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      } catch (error) {
-        console.log('First attempt failed, trying with load event...');
-        await page.goto(url, { waitUntil: 'load', timeout: 15000 });
-      }
 
       // Add random delays to mimic human behavior
       await page.waitForTimeout(Math.random() * 2000 + 4000);
@@ -117,11 +116,18 @@ class ProductScraper {
       // Check if we got blocked
       const pageTitle = await page.title();
       if (pageTitle.includes('Access Denied') || pageTitle.includes('Blocked') || pageTitle.includes('403')) {
-        console.log('⚠️  Site is blocking the scraper. Try a different site or use headless: false for manual testing.');
-        return null;
+        throw new Error('Access denied - site is blocking the scraper');
       }
 
-      const productData = await page.evaluate(() => {
+      // Extract product data with retry logic
+      const productData = await retry.extraction(async (attempt) => {
+        if (attempt > 0) {
+          console.log(`   Data extraction attempt ${attempt + 1}`);
+          // Add extra wait time on retries in case page is still loading
+          await page.waitForTimeout(2000);
+        }
+
+        return await page.evaluate(() => {
         const selectors = {
           price: [
             '.ProductPricing>span',
@@ -218,12 +224,18 @@ class ProductScraper {
         const title = findElement(selectors.title, 'title');
         const price = findElement(selectors.price, 'price') || findJsonData();
 
-        return {
-          title: title?.replace(/This item is not available.*$/i, '').trim(),
-          price: price,
-          url: window.location.href
-        };
+          return {
+            title: title?.replace(/This item is not available.*$/i, '').trim(),
+            price: price,
+            url: window.location.href
+          };
+        });
       });
+
+      // Validate extracted data
+      if (!productData || (!productData.title && !productData.price)) {
+        throw new Error('No product data found - page may not have loaded completely or selectors need updating');
+      }
 
       const priceMatch = productData.price?.match(/[\d,]+\.?\d*/);
       const cleanPrice = priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : null;
@@ -235,8 +247,8 @@ class ProductScraper {
       };
 
     } catch (error) {
-      console.error('Error scraping product:', error.message);
-      return null;
+      // Let the retry handler manage the error and browser switching
+      throw error;
     } finally {
       await page.close();
       await context.close();
