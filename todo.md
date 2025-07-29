@@ -135,10 +135,21 @@
 ### Enhanced Error Handling and Retry Logic (January 2025)
 - **Multi-browser retry**: Automatic progression Safari → Firefox → Chrome on failures
 - **Intelligent error classification**: Network, bot detection, parsing, server errors
-- **Exponential backoff**: Smart retry delays based on error type
+- **Exponential backoff**: Smart retry delays based on error type (3+ seconds)
 - **Browser switching**: Different browser engines to evade detection
 - **Files added**: `retry-handler.js`, `browser-manager.js` with comprehensive retry strategies
 - **Integration**: Seamless browser switching with proper error propagation
+
+### PostgreSQL Migration & Retailer System (January 2025)
+- **Database migration**: Moved from SQLite to PostgreSQL for scalability and UI readiness
+- **Retailer detection**: Automatic URL pattern matching with database-backed configurations
+- **Database-driven selectors**: Retailer-specific CSS selectors loaded from PostgreSQL
+- **Generic fallback**: 20 price + 16 title universal selectors for unknown retailers
+- **Analytics tracking**: All scraping attempts logged with error classification and performance metrics
+- **Diagnostic tools**: `failures` and `stats` CLI commands for troubleshooting
+- **UI-ready architecture**: JSONB configurations, multi-user support, concurrent access
+- **Files added**: `database-pg.js`, `retailer-manager.js`, `schema.sql`
+- **Integration**: Complete PostgreSQL integration with backward-compatible CLI interface
 
 ## Future Features - Not Currently Needed
 
