@@ -2,7 +2,7 @@
 
 const { Command } = require('commander');
 const ProductScraper = require('./scraper');
-const Database = require('./database');
+const Database = require('./database-pg');
 
 const program = new Command();
 
@@ -18,16 +18,18 @@ program
   .option('-d, --debug', 'Show detailed fingerprint randomization info')
   .option('-v, --no-headless', 'Run browser in visible mode (default: headless)')
   .action(async (url, options) => {
-    const scraper = new ProductScraper({
-      showFingerprint: options.debug,
-      headless: options.headless
-    });
     const db = new Database();
-
+    let scraper = null;
+    
     try {
       console.log(`Scraping product from: ${url}`);
-
       await db.init();
+      
+      scraper = new ProductScraper({
+        database: db,
+        showFingerprint: options.debug,
+        headless: options.headless
+      });
       const productData = await scraper.scrapeProduct(url);
 
       if (productData && productData.title && productData.price) {
@@ -46,7 +48,9 @@ program
     } catch (error) {
       console.error('❌ Error:', error.message);
     } finally {
-      await scraper.close();
+      if (scraper) {
+        await scraper.close();
+      }
       await db.close();
     }
   });
@@ -70,6 +74,7 @@ program
       products.forEach((product, index) => {
         console.log(`${index + 1}. ${product.title}`);
         console.log(`   Price: $${product.price || 'N/A'}`);
+        console.log(`   Retailer: ${product.retailer_name || 'Unknown'}`);
         console.log(`   URL: ${product.url}`);
         console.log(`   Scraped: ${new Date(product.scraped_at).toLocaleString()}`);
         console.log();
@@ -97,6 +102,7 @@ program
         console.log('✅ Product already in database:');
         console.log(`   Title: ${product.title}`);
         console.log(`   Price: $${product.price || 'N/A'}`);
+        console.log(`   Retailer: ${product.retailer_name || 'Unknown'}`);
         console.log(`   Last scraped: ${new Date(product.scraped_at).toLocaleString()}`);
       } else {
         console.log('❌ Product not found in database');

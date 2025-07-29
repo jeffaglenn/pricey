@@ -1,9 +1,12 @@
 const FingerprintRandomizer = require('./fingerprint-randomizer');
 const RetryHandler = require('./retry-handler');
 const BrowserManager = require('./browser-manager');
+const RetailerManager = require('./retailer-manager');
 
 class ProductScraper {
   constructor(options = {}) {
+    this.database = options.database; // Injected database instance
+    this.retailerManager = new RetailerManager(this.database);
     this.fingerprintRandomizer = new FingerprintRandomizer();
     this.browserManager = new BrowserManager({
       headless: options.headless !== false,
@@ -11,7 +14,7 @@ class ProductScraper {
     });
     this.retryHandler = new RetryHandler({
       maxRetries: options.maxRetries || 2, // Reduced since we have 3 browsers
-      baseDelay: options.baseDelay || 1000
+      baseDelay: options.baseDelay || 3000 // Updated to 3 seconds
     });
     this.showFingerprint = options.showFingerprint || false; // Default to false
   }
@@ -21,17 +24,39 @@ class ProductScraper {
   }
 
   async scrapeProduct(url) {
+    let retailerConfig = null;
+    let startTime = Date.now();
+    
     try {
+      // Detect retailer configuration
+      retailerConfig = await this.retailerManager.detectRetailer(url);
+      console.log(`🏪 Detected retailer: ${retailerConfig.name} (${retailerConfig.domain})`);
+      
       return await this.retryHandler.execute(async (attempt) => {
-        return await this._scrapeProductAttempt(url, attempt);
+        return await this._scrapeProductAttempt(url, attempt, retailerConfig);
       });
     } catch (error) {
       console.error('❌ All browser attempts failed:', error.message);
+      
+      // Record failed attempt
+      if (retailerConfig) {
+        await this.database.recordScrapeAttempt({
+          retailerId: retailerConfig.id,
+          url: url,
+          success: false,
+          errorMessage: error.message,
+          errorType: this._classifyError(error.message),
+          responseTime: Date.now() - startTime
+        });
+      }
+      
       return null;
     }
   }
 
-  async _scrapeProductAttempt(url, attempt = 0) {
+  async _scrapeProductAttempt(url, attempt = 0, retailerConfig) {
+    const startTime = Date.now();
+    
     // Get browser type for this attempt
     const browserType = this.browserManager.getBrowserType(attempt);
     const browser = await this.browserManager.getBrowser(browserType);
@@ -119,6 +144,10 @@ class ProductScraper {
         throw new Error('Access denied - site is blocking the scraper');
       }
 
+      // Get retailer-specific selectors
+      const priceSelectors = this.retailerManager.getSelectorsForType(retailerConfig, 'price');
+      const titleSelectors = this.retailerManager.getSelectorsForType(retailerConfig, 'title');
+      
       // Extract product data with retry logic
       const productData = await retry.extraction(async (attempt) => {
         if (attempt > 0) {
@@ -127,53 +156,7 @@ class ProductScraper {
           await page.waitForTimeout(2000);
         }
 
-        return await page.evaluate(() => {
-        const selectors = {
-          price: [
-            '.ProductPricing>span',
-            '[data-test="product-price"]',
-            '[data-test="product-price-value"]',
-            '[data-testid="price"]',
-            'span[data-test*="price"]',
-            'div[data-test*="price"]',
-            '.h-display-xs',
-            '.h-text-red',
-            '.h-text-lg',
-            '[class*="Price"]',
-            '.price',
-            '[class*="price"]',
-            '[id*="price"]',
-            '.a-price-whole',
-            '.notranslate',
-            '.our-price-1',
-            '[data-fs-element="price"]',
-            '.our-price',
-            '.price-display',
-            '.sale-price',
-            '.current-price',
-            '.details-our-price',
-            '.section-title',
-            '.variant-price',
-            '.final-price-red-color',
-            '.price-digit',
-            '.productNameComponent',
-            '[data-qaid="pdpProductPriceSale"]',
-            '.priceToPay',
-            '#pdpPrice',
-            '[data-qa="productName"]',
-            '.sales'
-          ],
-          title: [
-            '[data-test="product-title"]',
-            'h1[data-test]',
-            'h1',
-            '[data-testid="product-title"]',
-            '.product-title',
-            '[class*="title"]',
-            '#productTitle',
-            '#product-title'
-          ]
-        };
+        return await page.evaluate((selectorConfig) => {
 
         const findElement = (selectors, type) => {
           for (const selector of selectors) {
@@ -221,15 +204,15 @@ class ProductScraper {
           return null;
         };
 
-        const title = findElement(selectors.title, 'title');
-        const price = findElement(selectors.price, 'price') || findJsonData();
+        const title = findElement(selectorConfig.title, 'title');
+        const price = findElement(selectorConfig.price, 'price') || findJsonData();
 
           return {
             title: title?.replace(/This item is not available.*$/i, '').trim(),
             price: price,
             url: window.location.href
           };
-        });
+        }, { price: priceSelectors, title: titleSelectors });
       });
 
       // Validate extracted data - require both title and price for valid product
@@ -240,9 +223,24 @@ class ProductScraper {
       const priceMatch = productData.price?.match(/[\d,]+\.?\d*/);
       const cleanPrice = priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : null;
 
+      // Record successful attempt
+      const responseTime = Date.now() - startTime;
+      await this.database.recordScrapeAttempt({
+        retailerId: retailerConfig.id,
+        url: url,
+        success: true,
+        browserUsed: browserType,
+        responseTime: responseTime
+      });
+
+      // Update selector success rates
+      await this.retailerManager.updateSelectorStats(retailerConfig.id, 'price', true);
+      await this.retailerManager.updateSelectorStats(retailerConfig.id, 'title', true);
+
       return {
         ...productData,
         price: cleanPrice,
+        retailerId: retailerConfig.id,
         scrapedAt: new Date().toISOString()
       };
 
@@ -253,6 +251,30 @@ class ProductScraper {
       await page.close();
       await context.close();
     }
+  }
+
+  /**
+   * Classify error type for analytics
+   * @param {string} message - Error message
+   * @returns {string} Error type
+   */
+  _classifyError(message) {
+    const msg = message.toLowerCase();
+    
+    if (msg.includes('timeout') || msg.includes('network') || msg.includes('connection')) {
+      return 'network';
+    }
+    if (msg.includes('blocked') || msg.includes('access denied') || msg.includes('403')) {
+      return 'bot_detection';
+    }
+    if (msg.includes('incomplete product data') || msg.includes('missing title or price')) {
+      return 'parsing';
+    }
+    if (msg.includes('navigation') || msg.includes('page.goto')) {
+      return 'navigation';
+    }
+    
+    return 'unknown';
   }
 }
 
