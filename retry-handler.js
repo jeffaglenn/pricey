@@ -108,10 +108,12 @@ class RetryHandler {
       return 'navigation';
     }
 
-    // Parsing/selector errors - might be temporary DOM issues
+    // Parsing/selector errors - might be temporary DOM issues or blocking
     if (message.includes('waiting for selector') ||
         message.includes('element not found') ||
-        message.includes('no element')) {
+        message.includes('no element') ||
+        message.includes('incomplete product data') ||
+        message.includes('missing title or price')) {
       return 'parsing';
     }
 
@@ -144,7 +146,7 @@ class RetryHandler {
         return attempt < 1; // Only one retry for bot detection
 
       case 'parsing':
-        return attempt < 2; // Limited retries for parsing issues
+        return true; // Always retry parsing issues (browser switching may help)
 
       case 'unknown':
         return attempt < 1; // Conservative retry for unknown errors

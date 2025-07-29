@@ -232,9 +232,9 @@ class ProductScraper {
         });
       });
 
-      // Validate extracted data
-      if (!productData || (!productData.title && !productData.price)) {
-        throw new Error('No product data found - page may not have loaded completely or selectors need updating');
+      // Validate extracted data - require both title and price for valid product
+      if (!productData || !productData.title || !productData.price) {
+        throw new Error('Incomplete product data - missing title or price, may indicate site blocking or selector issues');
       }
 
       const priceMatch = productData.price?.match(/[\d,]+\.?\d*/);
