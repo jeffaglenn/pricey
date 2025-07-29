@@ -6,7 +6,7 @@
 class RetryHandler {
   constructor(options = {}) {
     this.maxRetries = options.maxRetries || 3;
-    this.baseDelay = options.baseDelay || 1000; // 1 second
+    this.baseDelay = options.baseDelay || 3000; // 3 seconds
     this.maxDelay = options.maxDelay || 30000; // 30 seconds
     this.backoffMultiplier = options.backoffMultiplier || 2;
     this.jitter = options.jitter !== false; // Add randomness by default
@@ -172,11 +172,11 @@ class RetryHandler {
         baseDelay = 10000; // 10 seconds for bot detection
         break;
       case 'server_error':
-        baseDelay = 2000; // 2 seconds for server errors
+        baseDelay = 3000; // 3 seconds for server errors
         break;
       case 'network':
       case 'navigation':
-        baseDelay = 1000; // 1 second for network issues
+        baseDelay = 3000; // 3 seconds for network issues
         break;
       default:
         baseDelay = this.baseDelay;
