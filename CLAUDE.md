@@ -32,12 +32,17 @@ node index.js scrape --debug "https://example-retailer.com/product"
 node index.js failures     # Show recent failures with error analysis
 node index.js stats        # Show success rates and performance metrics
 node index.js list         # List all scraped products with retailer info
+
+# Retailer management commands
+node index.js retailers     # List all configured retailers with success rates
+node index.js add-retailer -n "Store" -d "store.com" -p "price,selectors" -t "title,selectors"
+node index.js test-retailer "https://store.com/product"  # Test retailer detection
 ```
 
 ## Architecture
 
 ### Core Components
-- **`index.js`** - CLI interface using Commander.js with commands: `scrape`, `list`, `check`, `failures`, `stats`
+- **`index.js`** - CLI interface using Commander.js with commands: `scrape`, `list`, `check`, `failures`, `stats`, `retailers`, `add-retailer`, `test-retailer`
 - **`scraper.js`** - ProductScraper class using Playwright WebKit with extensive anti-detection techniques
 - **`fingerprint-randomizer.js`** - FingerprintRandomizer class for browser fingerprint randomization
 - **`database-pg.js`** - Database class wrapping PostgreSQL operations for product and retailer storage
@@ -115,6 +120,18 @@ The scraper uses database-driven extraction strategies:
 - **Success rate tracking**: Monitor which selectors work best per retailer
 - **Fallback chains**: Multiple selector strategies per retailer with priority ordering
 - **UI-ready design**: Supports future web interface for retailer management
+
+### Current Retailer Configurations
+- **Amazon** (amazon.com): 10 price + 8 title selectors, 3s delay, handles deal prices and variants
+- **Target** (target.com): 8 price + 7 title selectors, 2s delay, data-test attribute selectors
+- **Walmart** (walmart.com): 10 price + 8 title selectors, 2.5s delay, requires Firefox fallback for bot detection
+- **Best Buy** (bestbuy.com): 4 price + 4 title selectors, standard configuration
+- **Generic**: 20 price + 16 title universal selectors for unknown retailers
+
+### CLI Management Commands
+- **`node index.js retailers`** - List all configured retailers with success rates
+- **`node index.js add-retailer -n "Name" -d "domain.com" -p "selectors" -t "selectors"`** - Add new retailer
+- **`node index.js test-retailer <url>`** - Test retailer detection and view selectors for URL
 
 ## Key Patterns
 

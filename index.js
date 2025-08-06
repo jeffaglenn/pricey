@@ -3,6 +3,7 @@
 const { Command } = require('commander');
 const ProductScraper = require('./scraper');
 const Database = require('./database-pg');
+const RetailerManager = require('./retailer-manager');
 
 const program = new Command();
 
@@ -239,6 +240,111 @@ program
         retailerResult.rows.forEach(retailer => {
           console.log(`   ${retailer.name}: ${retailer.successful}/${retailer.attempts} (${retailer.success_rate}%)`);
         });
+      }
+      
+    } catch (error) {
+      console.error('❌ Error:', error.message);
+    } finally {
+      await db.close();
+    }
+  });
+
+program
+  .command('retailers')
+  .description('List all configured retailers')
+  .action(async () => {
+    const db = new Database();
+    
+    try {
+      await db.init();
+      const retailerManager = new RetailerManager(db);
+      const retailers = await retailerManager.listRetailers();
+      
+      if (retailers.length === 0) {
+        console.log('No retailers configured.');
+        return;
+      }
+      
+      console.log(`\n🏪 Configured retailers (${retailers.length}):\n`);
+      
+      retailers.forEach((retailer, index) => {
+        console.log(`${index + 1}. ${retailer.name}`);
+        console.log(`   Domain: ${retailer.domain}`);
+        console.log(`   Selectors: ${retailer.selector_count || 0}`);
+        console.log(`   Success Rate: ${retailer.avg_success_rate ? Math.round(retailer.avg_success_rate) + '%' : 'No data'}`);
+        console.log(`   Status: ${retailer.is_active ? '✅ Active' : '❌ Inactive'}`);
+        console.log();
+      });
+      
+    } catch (error) {
+      console.error('❌ Error:', error.message);
+    } finally {
+      await db.close();
+    }
+  });
+
+program
+  .command('add-retailer')
+  .description('Add a new retailer configuration')
+  .requiredOption('-n, --name <name>', 'Retailer name')
+  .requiredOption('-d, --domain <domain>', 'Retailer domain')
+  .option('-p, --price-selectors <selectors>', 'Comma-separated price selectors')
+  .option('-t, --title-selectors <selectors>', 'Comma-separated title selectors')
+  .option('--url-patterns <patterns>', 'Comma-separated URL patterns (regex)')
+  .action(async (options) => {
+    const db = new Database();
+    
+    try {
+      await db.init();
+      const retailerManager = new RetailerManager(db);
+      
+      const retailerData = {
+        name: options.name,
+        domain: options.domain,
+        urlPatterns: options.urlPatterns ? options.urlPatterns.split(',').map(p => p.trim()) : [],
+        priceSelectors: options.priceSelectors ? options.priceSelectors.split(',').map(s => s.trim()) : [],
+        titleSelectors: options.titleSelectors ? options.titleSelectors.split(',').map(s => s.trim()) : []
+      };
+      
+      const retailerId = await retailerManager.addRetailer(retailerData);
+      console.log(`✅ Added retailer: ${options.name} (ID: ${retailerId})`);
+      
+    } catch (error) {
+      console.error('❌ Error:', error.message);
+    } finally {
+      await db.close();
+    }
+  });
+
+program
+  .command('test-retailer')
+  .description('Test retailer detection and selectors')
+  .argument('<url>', 'URL to test retailer detection against')
+  .option('-r, --retailer <domain>', 'Expected retailer domain (use "auto" for auto-detection)')
+  .action(async (url, options) => {
+    const db = new Database();
+    
+    try {
+      await db.init();
+      const retailerManager = new RetailerManager(db);
+      
+      const result = await retailerManager.testRetailer(options.retailer || 'auto', url);
+      
+      if (result.success) {
+        console.log('✅ Retailer detection test successful:');
+        console.log(`   Retailer: ${result.retailer}`);
+        console.log(`   Domain: ${result.domain}`);
+        console.log(`   Price Selectors: ${result.selectors.price.length}`);
+        console.log(`   Title Selectors: ${result.selectors.title.length}`);
+        if (result.config.delay) {
+          console.log(`   Delay: ${result.config.delay}ms`);
+        }
+      } else {
+        console.log('❌ Retailer detection test failed:');
+        console.log(`   Message: ${result.message}`);
+        if (result.matched_retailer) {
+          console.log(`   Matched: ${result.matched_retailer}`);
+        }
       }
       
     } catch (error) {
