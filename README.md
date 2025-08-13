@@ -41,6 +41,27 @@ node index.js list
 node index.js check <product-url>
 ```
 
+### Retailer Management
+```bash
+# List all configured retailers with success rates
+node index.js retailers
+
+# Add a new retailer configuration
+node index.js add-retailer -n "Store Name" -d "domain.com" -p "price,selectors" -t "title,selectors"
+
+# Test retailer detection for a URL
+node index.js test-retailer <product-url>
+```
+
+### Web Dashboard
+```bash
+# Start the modern web dashboard (development)
+npm run api    # Terminal 1 - API server
+npm run web    # Terminal 2 - Web dev server
+
+# Visit: http://localhost:5173
+```
+
 ### Diagnostic Tools
 ```bash
 # Show recent scraping failures with error analysis
@@ -126,31 +147,64 @@ Use `node index.js failures` to see detailed error analysis and `node index.js s
 
 ## Retailer System
 
-### Current Status
-- **Generic retailer** - Universal selectors work across most e-commerce sites
-- **Automatic detection** - Identifies retailer from URL patterns
-- **Database-backed configs** - Easy to add retailer-specific configurations
-- **Success rate tracking** - Monitors selector performance over time
+### Current Configurations
+- **Amazon** (amazon.com) - 10 price + 8 title selectors, 3s delay, handles deal prices and variants
+- **Target** (target.com) - 8 price + 7 title selectors, 2s delay, data-test attribute selectors  
+- **Walmart** (walmart.com) - 10 price + 8 title selectors, 2.5s delay, requires Firefox fallback for bot detection
+- **Best Buy** (bestbuy.com) - 4 price + 4 title selectors, standard configuration
+- **Generic** - 20 price + 16 title universal selectors for unknown retailers
 
-### Future Expansion
-Ready to add retailer-specific configurations for:
-- Dick's Sporting Goods
-- Amazon (handle dynamic loading, variants)
-- Target (bypass bot detection)
-- Best Buy (handle stock availability)
-- Walmart (price display variations)
-- Home Depot (professional vs consumer pricing)
+### Features
+- **Automatic detection** - Identifies retailer from URL patterns
+- **CLI management commands** - Add, list, and test retailer configurations
+- **Database-backed configs** - JSONB storage for flexible retailer settings
+- **Success rate tracking** - Real-time analytics showing selector performance per retailer
+
+## Web Dashboard
+
+### Modern Interface
+- **Real-time Analytics** - Overview cards showing total products, active retailers, success rates
+- **Live Product Scraping** - Add product URLs directly from the web interface
+- **Retailer Management** - View all configured retailers with success rate tracking
+- **Recent Activity** - Table of latest scraped products with retailer information
+- **Auto-refresh** - Dashboard updates every 30 seconds automatically
+
+### Technology Stack
+- **Frontend**: Vite + Tailwind CSS + Alpine.js (modern vanilla approach)
+- **Backend**: Express.js API reusing existing database classes
+- **Development**: Hot reload dev server with API proxy
+- **Production**: Optimized static builds with tree-shaking
+
+### Project Structure
+```
+/pricey/
+├── api/
+│   └── server.js          # Express API backend
+├── web/
+│   ├── src/              # Vite frontend source
+│   ├── package.json      # Frontend dependencies  
+│   └── vite.config.js    # Build configuration
+├── database-pg.js        # Shared backend classes
+├── retailer-manager.js   # (at project root)
+└── scraper.js
+```
 
 ## Architecture
 
-### Core Components
-- **`index.js`** - CLI interface with all commands
+### CLI Components
+- **`index.js`** - CLI interface with scraping, retailer management, and diagnostic commands
 - **`scraper.js`** - Multi-browser scraping with anti-detection
 - **`database-pg.js`** - PostgreSQL database operations  
 - **`retailer-manager.js`** - Retailer detection and configuration management
 - **`retry-handler.js`** - Intelligent error classification and retry logic
 - **`browser-manager.js`** - Multi-browser management (Safari/Firefox/Chrome)
 - **`fingerprint-randomizer.js`** - Advanced browser fingerprint randomization
+
+### Web Components  
+- **`api/server.js`** - Express REST API server
+- **`web/src/dashboard.js`** - Alpine.js reactive dashboard components
+- **`web/src/api.js`** - Frontend API communication layer
+- **`web/index.html`** - Modern Tailwind CSS dashboard interface
 
 ### Database Schema
 - **retailers** - Retailer configurations with JSONB settings
@@ -197,19 +251,28 @@ node index.js failures
    Details: Incomplete product data - missing title or price, may indicate site blocking or selector issues
 ```
 
+## Recent Updates (January 2025)
+
+### ✅ Completed Features
+- **Retailer Management System** - CLI commands for adding, listing, and testing retailer configurations
+- **Major Retailer Configurations** - Amazon, Target, Walmart, Best Buy with custom selectors and success rate tracking
+- **Modern Web Dashboard** - Vite + Tailwind + Alpine.js interface with real-time analytics
+- **Express REST API** - Backend server reusing existing database classes with full CRUD operations
+- **Project Restructure** - Clean `api/` and `web/` organization with optimized development workflow
+
 ## Future Enhancements
 
 ### Near-term
-- CLI commands for adding custom retailers
-- Retailer-specific selector configurations
-- Price history tracking and notifications
-- Enhanced success rate analytics
+- **Price History Tracking** - Store price changes over time with trend analysis
+- **Notification System** - Alerts for price drops and availability changes
+- **Enhanced Analytics** - Detailed performance metrics and success rate breakdowns
+- **More Retailers** - Additional retailer-specific configurations (Home Depot, Dick's, etc.)
 
 ### Long-term
-- Web interface for retailer management
-- Multi-user support with authentication
-- Automated price drop alerts
-- API endpoints for programmatic access
+- **Production Deployment** - Single server mode with built static files
+- **User Authentication** - Multi-user support with secure login system
+- **Automated Monitoring** - Scheduled price checks with email/SMS notifications
+- **API Authentication** - Rate limiting and API key management for programmatic access
 
 ### High-Volume Scenarios
 - Proxy rotation support (for users scraping >10 requests/hour)
