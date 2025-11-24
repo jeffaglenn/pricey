@@ -8,7 +8,7 @@ export function dashboard() {
     scraping: false,
     activeTab: 'products',
     lastUpdated: '',
-    
+
     // Data
     stats: {
       totalProducts: 0,
@@ -18,10 +18,17 @@ export function dashboard() {
     },
     products: [],
     retailers: [],
-    
+
     // Forms
     scrapeUrl: '',
     scrapeResult: null,
+
+    // Edit modal state
+    editModalOpen: false,
+    editingProduct: null,
+    editForm: {
+      title: ''
+    },
     
     // Initialize component
     async init() {
@@ -157,7 +164,80 @@ export function dashboard() {
       }
     },
     
-    // Delete a product
+    // Open edit modal
+    openEditModal(product) {
+      this.editingProduct = product;
+      this.editForm.title = product.title;
+      this.editModalOpen = true;
+    },
+
+    // Close edit modal
+    closeEditModal() {
+      this.editModalOpen = false;
+      this.editingProduct = null;
+      this.editForm.title = '';
+    },
+
+    // Save product edits
+    async saveProduct() {
+      if (!this.editForm.title.trim()) {
+        this.showError('Title cannot be empty');
+        return;
+      }
+
+      try {
+        console.log('💾 Updating product:', this.editingProduct.id);
+
+        const result = await api.updateProduct(this.editingProduct.id, {
+          title: this.editForm.title.trim()
+        });
+
+        // Update in local array
+        const index = this.products.findIndex(p => p.id === this.editingProduct.id);
+        if (index !== -1) {
+          this.products[index].title = this.editForm.title.trim();
+        }
+
+        console.log('✅ Product updated successfully');
+
+        this.closeEditModal();
+
+      } catch (error) {
+        console.error('❌ Failed to update product:', error);
+        this.showError('Failed to update product: ' + error.message);
+      }
+    },
+
+    // Delete product from modal
+    async deleteProductFromModal() {
+      const confirmed = confirm(`Are you sure you want to delete "${this.editingProduct.title}"?`);
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        console.log('🗑️ Deleting product:', this.editingProduct.id);
+
+        await api.deleteProduct(this.editingProduct.id);
+
+        // Remove from local array
+        this.products = this.products.filter(p => p.id !== this.editingProduct.id);
+
+        // Update stats
+        this.stats.totalProducts--;
+
+        console.log('✅ Product deleted successfully');
+
+        this.closeEditModal();
+
+      } catch (error) {
+        console.error('❌ Failed to delete product:', error);
+        this.showError('Failed to delete product: ' + error.message);
+      }
+    },
+
+    // Delete a product (from table)
     async deleteProduct(product) {
       // Confirm deletion
       const confirmed = confirm(`Are you sure you want to delete "${product.title}"?`);

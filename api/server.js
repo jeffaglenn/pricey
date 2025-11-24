@@ -89,6 +89,47 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+// Update a product
+app.patch('/api/products/:id', async (req, res) => {
+  const db = new Database();
+
+  try {
+    await db.init();
+    const productId = parseInt(req.params.id);
+    const { title } = req.body;
+
+    if (!productId || isNaN(productId)) {
+      return res.status(400).json({ error: 'Invalid product ID' });
+    }
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const pool = db.getPool();
+    const result = await pool.query(
+      'UPDATE products SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [title.trim(), productId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      product: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Product update error:', error);
+    res.status(500).json({ error: 'Failed to update product' });
+  } finally {
+    await db.close();
+  }
+});
+
 // Delete a product
 app.delete('/api/products/:id', async (req, res) => {
   const db = new Database();

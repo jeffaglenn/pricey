@@ -67,6 +67,14 @@ class API {
     });
   }
 
+  // Update a product
+  async updateProduct(productId, data) {
+    return this.request(`/products/${productId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Delete a product
   async deleteProduct(productId) {
     return this.request(`/products/${productId}`, {
