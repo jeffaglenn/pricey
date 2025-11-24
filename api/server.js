@@ -96,7 +96,7 @@ app.patch('/api/products/:id', async (req, res) => {
   try {
     await db.init();
     const productId = parseInt(req.params.id);
-    const { title } = req.body;
+    const { title, threshold_price } = req.body;
 
     if (!productId || isNaN(productId)) {
       return res.status(400).json({ error: 'Invalid product ID' });
@@ -106,10 +106,19 @@ app.patch('/api/products/:id', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
+    // Validate threshold_price if provided
+    let thresholdValue = null;
+    if (threshold_price !== undefined && threshold_price !== null && threshold_price !== '') {
+      thresholdValue = parseFloat(threshold_price);
+      if (isNaN(thresholdValue) || thresholdValue < 0) {
+        return res.status(400).json({ error: 'Threshold price must be a positive number' });
+      }
+    }
+
     const pool = db.getPool();
     const result = await pool.query(
-      'UPDATE products SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [title.trim(), productId]
+      'UPDATE products SET title = $1, threshold_price = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [title.trim(), thresholdValue, productId]
     );
 
     if (result.rowCount === 0) {
@@ -226,6 +235,77 @@ app.post('/api/scrape', async (req, res) => {
     
   } catch (error) {
     console.error('Scrape error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  } finally {
+    if (scraper) {
+      await scraper.close();
+    }
+    await db.close();
+  }
+});
+
+// Re-scrape an existing product to get updated price
+app.post('/api/products/:id/rescrape', async (req, res) => {
+  const db = new Database();
+  let scraper = null;
+
+  try {
+    await db.init();
+    const productId = parseInt(req.params.id);
+
+    if (!productId || isNaN(productId)) {
+      return res.status(400).json({ error: 'Invalid product ID' });
+    }
+
+    // Get existing product to retrieve URL and threshold
+    const pool = db.getPool();
+    const existingProduct = await pool.query('SELECT * FROM products WHERE id = $1', [productId]);
+
+    if (existingProduct.rowCount === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const product = existingProduct.rows[0];
+    const url = product.url;
+    const threshold = product.threshold_price;
+
+    console.log(`Re-scraping product ${productId}: ${url}`);
+
+    scraper = new ProductScraper({
+      database: db,
+      showFingerprint: false,
+      headless: true
+    });
+
+    const productData = await scraper.scrapeProduct(url);
+
+    if (productData && productData.title && productData.price) {
+      // Update existing product with new data, preserving threshold
+      await pool.query(
+        'UPDATE products SET title = $1, price = $2, scraped_at = NOW(), updated_at = NOW() WHERE id = $3',
+        [productData.title, productData.price, productId]
+      );
+
+      // Get updated product
+      const updated = await pool.query('SELECT * FROM products WHERE id = $1', [productId]);
+
+      res.json({
+        success: true,
+        message: 'Product re-scraped successfully',
+        product: updated.rows[0]
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Failed to scrape product - could not find title or price'
+      });
+    }
+
+  } catch (error) {
+    console.error('Re-scrape error:', error);
     res.status(500).json({
       success: false,
       error: error.message

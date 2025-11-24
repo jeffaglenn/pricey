@@ -4,10 +4,9 @@ import { api } from './api.js';
 export function dashboard() {
   return {
     // State
-    loading: false,
     scraping: false,
+    rescrapingId: null, // Track which product is being re-scraped
     activeTab: 'products',
-    lastUpdated: '',
 
     // Data
     stats: {
@@ -27,24 +26,18 @@ export function dashboard() {
     editModalOpen: false,
     editingProduct: null,
     editForm: {
-      title: ''
+      title: '',
+      threshold_price: ''
     },
     
     // Initialize component
     async init() {
       console.log('🚀 Pricey Dashboard initialized (Vite + Alpine.js)');
-      await this.refreshData();
-      
-      // Auto-refresh every 30 seconds
-      setInterval(() => {
-        this.refreshData();
-      }, 30000);
+      await this.loadData();
     },
-    
-    // Refresh all data
-    async refreshData() {
-      this.loading = true;
-      
+
+    // Load initial data
+    async loadData() {
       try {
         // Load all data in parallel
         const [dashboardData, productsData, retailersData] = await Promise.all([
@@ -52,25 +45,21 @@ export function dashboard() {
           api.getProducts(20),
           api.getRetailers()
         ]);
-        
+
         // Update state
         this.stats = dashboardData;
         this.products = productsData;
         this.retailers = retailersData;
-        
-        this.lastUpdated = this.formatDate(new Date());
-        
-        console.log('📊 Dashboard data refreshed', {
+
+        console.log('📊 Dashboard data loaded', {
           stats: this.stats,
           productsCount: this.products.length,
           retailersCount: this.retailers.length
         });
-        
+
       } catch (error) {
-        console.error('❌ Failed to refresh dashboard data:', error);
+        console.error('❌ Failed to load dashboard data:', error);
         this.showError('Failed to load dashboard data: ' + error.message);
-      } finally {
-        this.loading = false;
       }
     },
     
@@ -168,6 +157,7 @@ export function dashboard() {
     openEditModal(product) {
       this.editingProduct = product;
       this.editForm.title = product.title;
+      this.editForm.threshold_price = product.threshold_price || '';
       this.editModalOpen = true;
     },
 
@@ -176,6 +166,7 @@ export function dashboard() {
       this.editModalOpen = false;
       this.editingProduct = null;
       this.editForm.title = '';
+      this.editForm.threshold_price = '';
     },
 
     // Save product edits
@@ -188,14 +179,18 @@ export function dashboard() {
       try {
         console.log('💾 Updating product:', this.editingProduct.id);
 
-        const result = await api.updateProduct(this.editingProduct.id, {
-          title: this.editForm.title.trim()
-        });
+        const updateData = {
+          title: this.editForm.title.trim(),
+          threshold_price: this.editForm.threshold_price || null
+        };
+
+        const result = await api.updateProduct(this.editingProduct.id, updateData);
 
         // Update in local array
         const index = this.products.findIndex(p => p.id === this.editingProduct.id);
         if (index !== -1) {
           this.products[index].title = this.editForm.title.trim();
+          this.products[index].threshold_price = this.editForm.threshold_price || null;
         }
 
         console.log('✅ Product updated successfully');
@@ -262,6 +257,34 @@ export function dashboard() {
       } catch (error) {
         console.error('❌ Failed to delete product:', error);
         this.showError('Failed to delete product: ' + error.message);
+      }
+    },
+
+    // Re-scrape a product to get updated price
+    async rescrapeProduct(product) {
+      try {
+        this.rescrapingId = product.id;
+        console.log('🔄 Re-scraping product:', product.id);
+
+        const result = await api.rescrapeProduct(product.id);
+
+        if (result.success) {
+          // Update product in local array with new price data
+          const index = this.products.findIndex(p => p.id === product.id);
+          if (index !== -1) {
+            this.products[index].price = result.product.price;
+            this.products[index].title = result.product.title;
+            this.products[index].scraped_at = result.product.scraped_at;
+          }
+
+          console.log('✅ Product re-scraped successfully. New price:', result.product.price);
+        }
+
+      } catch (error) {
+        console.error('❌ Failed to re-scrape product:', error);
+        this.showError('Failed to re-scrape product: ' + error.message);
+      } finally {
+        this.rescrapingId = null;
       }
     },
 

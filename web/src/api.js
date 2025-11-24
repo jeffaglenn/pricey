@@ -81,6 +81,13 @@ class API {
       method: 'DELETE',
     });
   }
+
+  // Re-scrape a product to get updated price
+  async rescrapeProduct(productId) {
+    return this.request(`/products/${productId}/rescrape`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const api = new API();
