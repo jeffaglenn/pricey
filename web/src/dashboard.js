@@ -6,6 +6,7 @@ export function dashboard() {
     // State
     scraping: false,
     rescrapingId: null, // Track which product is being re-scraped
+    addingProduct: false,
     activeTab: 'products',
 
     // Data
@@ -26,6 +27,14 @@ export function dashboard() {
     editModalOpen: false,
     editingProduct: null,
     editForm: {
+      title: '',
+      threshold_price: ''
+    },
+
+    // Add product modal state
+    addModalOpen: false,
+    addForm: {
+      url: '',
       title: '',
       threshold_price: ''
     },
@@ -232,6 +241,97 @@ export function dashboard() {
       }
     },
 
+    // Open add product modal
+    openAddModal() {
+      this.addForm.url = '';
+      this.addForm.title = '';
+      this.addForm.threshold_price = '';
+      this.addModalOpen = true;
+    },
+
+    // Close add product modal
+    closeAddModal() {
+      this.addModalOpen = false;
+      this.addForm.url = '';
+      this.addForm.title = '';
+      this.addForm.threshold_price = '';
+    },
+
+    // Add a new product with custom fields
+    async addProduct() {
+      if (!this.addForm.url.trim()) {
+        this.showError('URL is required');
+        return;
+      }
+
+      this.addingProduct = true;
+
+      try {
+        console.log('➕ Adding product:', this.addForm.url);
+
+        // First, scrape the product
+        const scrapeResult = await api.scrapeProduct(this.addForm.url.trim());
+
+        if (scrapeResult.success) {
+          const productId = scrapeResult.product.id;
+
+          // If custom title or threshold is provided, update the product
+          if (this.addForm.title.trim() || this.addForm.threshold_price) {
+            const updateData = {};
+
+            if (this.addForm.title.trim()) {
+              updateData.title = this.addForm.title.trim();
+            } else {
+              updateData.title = scrapeResult.product.title;
+            }
+
+            if (this.addForm.threshold_price) {
+              updateData.threshold_price = this.addForm.threshold_price;
+            }
+
+            await api.updateProduct(productId, updateData);
+
+            // Add updated product to the list
+            this.products.unshift({
+              id: productId,
+              title: updateData.title,
+              price: scrapeResult.product.price,
+              url: scrapeResult.product.url,
+              retailer_name: scrapeResult.product.retailer,
+              scraped_at: scrapeResult.product.scraped_at,
+              threshold_price: updateData.threshold_price || null
+            });
+          } else {
+            // Just add the scraped product as-is
+            this.products.unshift({
+              id: productId,
+              title: scrapeResult.product.title,
+              price: scrapeResult.product.price,
+              url: scrapeResult.product.url,
+              retailer_name: scrapeResult.product.retailer,
+              scraped_at: scrapeResult.product.scraped_at,
+              threshold_price: null
+            });
+          }
+
+          // Update stats
+          this.stats.totalProducts++;
+
+          console.log('✅ Product added successfully');
+
+          this.closeAddModal();
+        } else {
+          this.showError('Failed to scrape product: ' + (scrapeResult.error || 'Unknown error'));
+        }
+
+      } catch (error) {
+        console.error('❌ Failed to add product:', error);
+        this.showError('Failed to add product: ' + error.message);
+      } finally {
+        this.addingProduct = false;
+      }
+    },
+
     // Delete a product (from table)
     async deleteProduct(product) {
       // Confirm deletion
@@ -269,11 +369,10 @@ export function dashboard() {
         const result = await api.rescrapeProduct(product.id);
 
         if (result.success) {
-          // Update product in local array with new price data
+          // Update product in local array with new price and scraped time only (keep title unchanged)
           const index = this.products.findIndex(p => p.id === product.id);
           if (index !== -1) {
             this.products[index].price = result.product.price;
-            this.products[index].title = result.product.title;
             this.products[index].scraped_at = result.product.scraped_at;
           }
 

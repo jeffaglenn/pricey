@@ -98,7 +98,15 @@
         <!-- Quick Actions -->
         <div class="bg-white shadow rounded-lg mb-8">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Quick Actions</h3>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Quick Actions</h3>
+                    <button
+                        @click="openAddModal()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                        ➕ Add New Product
+                    </button>
+                </div>
 
                 <!-- Scrape Form -->
                 <form @submit.prevent="scrapeProduct()" class="flex space-x-4">
@@ -349,6 +357,100 @@
                                 💾 Save Changes
                             </button>
                         </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div
+        x-show="addModalOpen"
+        x-cloak
+        @click.self="closeAddModal()"
+        class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center"
+    >
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-5 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900">Add New Product</h3>
+                <button
+                    @click="closeAddModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                    <span class="text-2xl">&times;</span>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6">
+                <form @submit.prevent="addProduct()">
+                    <div class="mb-4">
+                        <label for="add-url" class="block text-sm font-medium text-gray-700 mb-2">
+                            Product URL <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="add-url"
+                            type="url"
+                            x-model="addForm.url"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="https://example.com/product"
+                        />
+                        <p class="mt-1 text-xs text-gray-500">URL will be scraped to get price information</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="add-title" class="block text-sm font-medium text-gray-700 mb-2">
+                            Custom Title (Optional)
+                        </label>
+                        <textarea
+                            id="add-title"
+                            x-model="addForm.title"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Leave blank to use scraped title..."
+                        ></textarea>
+                        <p class="mt-1 text-xs text-gray-500">Override the scraped title with your own</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="add-threshold" class="block text-sm font-medium text-gray-700 mb-2">
+                            Threshold Price (Optional)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">$</span>
+                            <input
+                                id="add-threshold"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="addForm.threshold_price"
+                                class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="0.00"
+                            />
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Set a price threshold for monitoring and alerts</p>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <button
+                            type="button"
+                            @click="closeAddModal()"
+                            :disabled="addingProduct"
+                            class="bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="addingProduct || !addForm.url"
+                            class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                        >
+                            <span x-show="!addingProduct">➕ Add Product</span>
+                            <span x-show="addingProduct">⏳ Adding...</span>
+                        </button>
                     </div>
                 </form>
             </div>

@@ -217,21 +217,21 @@ class Database {
 
   // Backward compatible product methods
   async saveProduct(productData) {
-    const { title, price, url, scrapedAt, retailerId = null } = productData;
-    
+    const { title, price, url, retailerId = null } = productData;
+
     try {
       const result = await this.pool.query(`
         INSERT INTO products (title, price, url, scraped_at, retailer_id)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (url) 
-        DO UPDATE SET 
+        VALUES ($1, $2, $3, NOW(), $4)
+        ON CONFLICT (url)
+        DO UPDATE SET
           title = EXCLUDED.title,
           price = EXCLUDED.price,
-          scraped_at = EXCLUDED.scraped_at,
+          scraped_at = NOW(),
           retailer_id = EXCLUDED.retailer_id,
           updated_at = CURRENT_TIMESTAMP
         RETURNING id
-      `, [title, price, url, scrapedAt, retailerId]);
+      `, [title, price, url, retailerId]);
       
       return result.rows[0].id;
     } catch (error) {

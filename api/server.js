@@ -288,10 +288,10 @@ app.post('/api/products/:id/rescrape', async (req, res) => {
     const productData = await scraper.scrapeProduct(url);
 
     if (productData && productData.title && productData.price) {
-      // Update existing product with new data, preserving threshold
+      // Update existing product with new price only, preserving title and threshold
       await pool.query(
-        'UPDATE products SET title = $1, price = $2, scraped_at = NOW(), updated_at = NOW() WHERE id = $3',
-        [productData.title, productData.price, productId]
+        'UPDATE products SET price = $1, scraped_at = NOW(), updated_at = NOW() WHERE id = $2',
+        [productData.price, productId]
       );
 
       // Get updated product
