@@ -265,6 +265,22 @@ export function dashboard() {
       }
     },
 
+    // Extract root domain from URL (e.g., "https://www.amazon.com/product/123" -> "amazon.com")
+    getRootDomain(url) {
+      try {
+        const urlObj = new URL(url);
+        let hostname = urlObj.hostname;
+
+        // Remove www. prefix if present
+        hostname = hostname.replace(/^www\./, '');
+
+        return hostname;
+      } catch (error) {
+        console.error('Failed to parse URL:', url, error);
+        return url; // Return original if parsing fails
+      }
+    },
+
     // Show error message (could be enhanced with toast notifications)
     showError(message) {
       console.error('🚨 Error:', message);

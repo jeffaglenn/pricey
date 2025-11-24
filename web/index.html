@@ -191,6 +191,7 @@
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-6 py-4">
                                         <div class="text-sm font-medium text-gray-900 break-words" x-text="product.title"></div>
+                                        <div class="text-xs text-gray-500 mt-1" x-text="getRootDomain(product.url)"></div>
                                         <div class="text-sm text-gray-500 mt-1">
                                             <a :href="product.url" target="_blank" class="text-blue-600 hover:text-blue-900 hover:underline">View Product →</a>
                                         </div>
