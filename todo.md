@@ -199,11 +199,26 @@
 - **Product deletion**: Delete from table or modal with confirmation dialogs
 - **Root domain display**: Shows clean domain (e.g., "amazon.com") under product title
 - **Threshold price tracking**: Optional price monitoring field stored in database
-- **Re-scrape functionality**: "🔄 Update" button per product to fetch fresh prices
+- **Re-scrape functionality**: "🔄 Update" button per product to fetch fresh prices (updates price only, preserves custom title)
 - **UI polish**: Removed unnecessary refresh button, cleaner header, better visual feedback
 - **Files modified**: `web/index.html`, `web/src/dashboard.js`, `web/src/api.js`, `api/server.js`
 - **Database migration**: Added `threshold_price` column to products table
 - **Integration**: Full CRUD operations with real-time UI updates
+
+### Add Product Modal (November 2024)
+- **Advanced product creation**: "Add New Product" button with modal for enhanced customization
+- **Three-field form**: Product URL (required), custom title (optional), threshold price (optional)
+- **Smart workflow**: Scrapes URL for price, then optionally overrides title and sets threshold
+- **Seamless integration**: Works alongside quick action scrape for different use cases
+- **Real-time feedback**: Loading states, success messages, and error handling
+- **Files modified**: `web/index.html`, `web/src/dashboard.js`, `web/src/api.js`
+- **Use case**: Quick action for fast scraping, Add Product modal for setting custom titles and thresholds upfront
+
+### Timestamp Fix (November 2024)
+- **Corrected UTC storage**: Changed from JavaScript Date.toISOString() to PostgreSQL NOW()
+- **Accurate timezone display**: Database stores correct UTC time, frontend converts to local timezone
+- **Files modified**: `database-pg.js` (saveProduct method), `api/server.js` (scrape and rescrape endpoints)
+- **Issue resolved**: Products were showing 6 hours ahead due to timestamp interpretation mismatch
 
 ## Current Status Summary
 
@@ -217,9 +232,11 @@
 - Error classification and handling
 - Exponential backoff retry logic
 - Production-ready web dashboard with full CRUD
-- Product re-scraping for price updates
+- Product re-scraping for price updates (preserves custom titles)
 - Threshold price monitoring
 - Responsive table layout with proper timezone handling
+- Add Product modal with custom title and threshold options
+- Accurate UTC timestamp storage and local timezone display
 
 **🔄 IN PROGRESS:**
 - Advanced browser behavior simulation
