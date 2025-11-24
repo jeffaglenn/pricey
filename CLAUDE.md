@@ -11,6 +11,7 @@ Pricey is a CLI-based product price scraper that uses Playwright with WebKit/Saf
 ```bash
 # Install dependencies (includes Playwright browsers and PostgreSQL client)
 npm install
+cd web && npm install  # Install frontend dependencies
 
 # Set up PostgreSQL database
 psql -c "CREATE DATABASE pricey;" postgres
@@ -37,11 +38,19 @@ node index.js list         # List all scraped products with retailer info
 node index.js retailers     # List all configured retailers with success rates
 node index.js add-retailer -n "Store" -d "store.com" -p "price,selectors" -t "title,selectors"
 node index.js test-retailer "https://store.com/product"  # Test retailer detection
+
+# Web Dashboard Commands
+npm run dev          # Run Vite dev server (development mode with HMR)
+npm run api          # Run Express API server (port 3001)
+npm run build        # Build frontend for production (outputs to api/public/)
+npm run prod         # Build and run production server (single server on port 3001)
 ```
 
 ## Architecture
 
 ### Core Components
+
+**CLI (Command Line Interface):**
 - **`index.js`** - CLI interface using Commander.js with commands: `scrape`, `list`, `check`, `failures`, `stats`, `retailers`, `add-retailer`, `test-retailer`
 - **`scraper.js`** - ProductScraper class using Playwright WebKit with extensive anti-detection techniques
 - **`fingerprint-randomizer.js`** - FingerprintRandomizer class for browser fingerprint randomization
@@ -49,6 +58,13 @@ node index.js test-retailer "https://store.com/product"  # Test retailer detecti
 - **`retailer-manager.js`** - RetailerManager class for database-backed retailer detection and configuration
 - **`retry-handler.js`** - RetryHandler class for intelligent error classification and retry strategies
 - **`browser-manager.js`** - BrowserManager class for multi-browser retry logic (Safari → Firefox → Chrome)
+
+**Web Dashboard (UI):**
+- **`api/server.js`** - Express.js REST API server serving both API endpoints and built frontend
+- **`web/src/dashboard.js`** - Alpine.js dashboard component with reactive state management
+- **`web/src/api.js`** - Frontend API client for communicating with Express backend
+- **`web/index.html`** - Main dashboard UI with stats cards, product table, retailer management
+- **Vite + Tailwind CSS** - Modern build tooling with utility-first CSS framework
 
 ### Data Flow
 1. CLI command parsed → Database and ProductScraper instances created

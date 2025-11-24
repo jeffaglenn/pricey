@@ -11,12 +11,10 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve main dashboard
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
-});
+// Serve static files from public directory (Vite build output)
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
 
 // API Routes
 
@@ -234,6 +232,16 @@ app.post('/api/test-retailer', async (req, res) => {
   } finally {
     await db.close();
   }
+});
+
+// Catch-all route: serve index.html for any non-API routes (SPA support)
+// Using a regex pattern to avoid Express 5 wildcard issues
+app.get(/^(?!\/api).*$/, (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'), (err) => {
+    if (err) {
+      res.status(404).send('Dashboard not built yet. Run `npm run build` first.');
+    }
+  });
 });
 
 // Start server

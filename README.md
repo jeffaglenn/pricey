@@ -55,11 +55,18 @@ node index.js test-retailer <product-url>
 
 ### Web Dashboard
 ```bash
-# Start the modern web dashboard (development)
-npm run api    # Terminal 1 - API server
-npm run web    # Terminal 2 - Web dev server
-
+# Development mode (two servers with hot reload)
+npm run api    # Terminal 1 - API server on port 3001
+npm run web    # Terminal 2 - Vite dev server on port 5173
 # Visit: http://localhost:5173
+
+# Production mode (single server, optimized build)
+npm run prod   # Build frontend + start server
+# Visit: http://localhost:3001
+
+# Or manually:
+npm run build  # Build frontend to api/public/
+npm run api    # Start production server
 ```
 
 ### Diagnostic Tools
@@ -251,13 +258,14 @@ node index.js failures
    Details: Incomplete product data - missing title or price, may indicate site blocking or selector issues
 ```
 
-## Recent Updates (January 2025)
+## Recent Updates (November 2024)
 
 ### ✅ Completed Features
 - **Retailer Management System** - CLI commands for adding, listing, and testing retailer configurations
 - **Major Retailer Configurations** - Amazon, Target, Walmart, Best Buy with custom selectors and success rate tracking
 - **Modern Web Dashboard** - Vite + Tailwind + Alpine.js interface with real-time analytics
 - **Express REST API** - Backend server reusing existing database classes with full CRUD operations
+- **Production Build System** - Single-command production deployment with optimized static files
 - **Project Restructure** - Clean `api/` and `web/` organization with optimized development workflow
 
 ## Future Enhancements
@@ -269,7 +277,6 @@ node index.js failures
 - **More Retailers** - Additional retailer-specific configurations (Home Depot, Dick's, etc.)
 
 ### Long-term
-- **Production Deployment** - Single server mode with built static files
 - **User Authentication** - Multi-user support with secure login system
 - **Automated Monitoring** - Scheduled price checks with email/SMS notifications
 - **API Authentication** - Rate limiting and API key management for programmatic access
