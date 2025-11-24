@@ -82,7 +82,7 @@ export function dashboard() {
         
         if (result.success) {
           console.log('✅ Scrape successful:', result.product);
-          
+
           // Add new product to the list at the top
           this.products.unshift({
             id: result.product.id,
@@ -90,7 +90,7 @@ export function dashboard() {
             price: result.product.price,
             url: result.product.url,
             retailer_name: result.product.retailer,
-            scraped_at: new Date().toISOString()
+            scraped_at: result.product.scraped_at
           });
           
           // Update stats

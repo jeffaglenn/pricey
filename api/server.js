@@ -215,7 +215,11 @@ app.post('/api/scrape', async (req, res) => {
     
     if (productData && productData.title && productData.price) {
       const productId = await db.saveProduct(productData);
-      
+
+      // Get the full product record with scraped_at timestamp
+      const pool = db.getPool();
+      const savedProduct = await pool.query('SELECT * FROM products WHERE id = $1', [productId]);
+
       res.json({
         success: true,
         product: {
@@ -223,7 +227,8 @@ app.post('/api/scrape', async (req, res) => {
           title: productData.title,
           price: productData.price,
           url: productData.url,
-          retailer: productData.retailer_name
+          retailer: productData.retailer_name,
+          scraped_at: savedProduct.rows[0].scraped_at
         }
       });
     } else {
