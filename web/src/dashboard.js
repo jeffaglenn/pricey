@@ -120,30 +120,40 @@ export function dashboard() {
       }
     },
     
-    // Format date for display
+    // Format date for display (uses system timezone)
     formatDate(dateInput) {
       if (!dateInput) return 'Unknown';
-      
+
+      // Convert to Date object if it's a string (handles UTC timestamps from database)
       const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-      
+
       if (isNaN(date.getTime())) return 'Invalid date';
-      
-      // Check if date is today
+
+      // Check if date is today (in local timezone)
       const now = new Date();
       const isToday = date.toDateString() === now.toDateString();
-      
+
+      // Options for formatting in local timezone
+      const timeOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      };
+
+      const dateTimeOptions = {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      };
+
       if (isToday) {
-        return date.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
+        // Show only time for today (e.g., "3:45 PM")
+        return date.toLocaleTimeString('en-US', timeOptions);
       } else {
-        return date.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric',
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
+        // Show date and time for other days (e.g., "Nov 24, 3:45 PM")
+        return date.toLocaleString('en-US', dateTimeOptions);
       }
     },
     
