@@ -157,12 +157,40 @@ export function dashboard() {
       }
     },
     
+    // Delete a product
+    async deleteProduct(product) {
+      // Confirm deletion
+      const confirmed = confirm(`Are you sure you want to delete "${product.title}"?`);
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        console.log('🗑️ Deleting product:', product.id);
+
+        await api.deleteProduct(product.id);
+
+        // Remove from local array
+        this.products = this.products.filter(p => p.id !== product.id);
+
+        // Update stats
+        this.stats.totalProducts--;
+
+        console.log('✅ Product deleted successfully');
+
+      } catch (error) {
+        console.error('❌ Failed to delete product:', error);
+        this.showError('Failed to delete product: ' + error.message);
+      }
+    },
+
     // Show error message (could be enhanced with toast notifications)
     showError(message) {
       console.error('🚨 Error:', message);
       alert('Error: ' + message); // Simple for now, could be enhanced with better UI
     },
-    
+
     // Switch tabs
     switchTab(tab) {
       this.activeTab = tab;

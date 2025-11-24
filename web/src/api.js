@@ -66,6 +66,13 @@ class API {
       body: JSON.stringify({ url, expectedDomain }),
     });
   }
+
+  // Delete a product
+  async deleteProduct(productId) {
+    return this.request(`/products/${productId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new API();

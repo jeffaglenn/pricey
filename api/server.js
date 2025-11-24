@@ -73,17 +73,50 @@ app.get('/api/dashboard', async (req, res) => {
 // Get recent products
 app.get('/api/products', async (req, res) => {
   const db = new Database();
-  
+
   try {
     await db.init();
     const limit = parseInt(req.query.limit) || 20;
     const products = await db.getAllProducts(limit);
-    
+
     res.json(products);
-    
+
   } catch (error) {
     console.error('Products fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch products' });
+  } finally {
+    await db.close();
+  }
+});
+
+// Delete a product
+app.delete('/api/products/:id', async (req, res) => {
+  const db = new Database();
+
+  try {
+    await db.init();
+    const productId = parseInt(req.params.id);
+
+    if (!productId || isNaN(productId)) {
+      return res.status(400).json({ error: 'Invalid product ID' });
+    }
+
+    const pool = db.getPool();
+    const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING id', [productId]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Product deleted successfully',
+      id: productId
+    });
+
+  } catch (error) {
+    console.error('Product delete error:', error);
+    res.status(500).json({ error: 'Failed to delete product' });
   } finally {
     await db.close();
   }
