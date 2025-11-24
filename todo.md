@@ -183,6 +183,28 @@
 - **Files modified**: `browser-manager.js`, `scraper.js`, `retry-handler.js`
 - **Integration**: Seamless browser switching with proper error propagation and logging
 
+### Production Dashboard Build System (November 2024)
+- **Single-server production mode**: `npm run prod` builds frontend and serves from Express
+- **Vite build pipeline**: Optimized static assets output to `api/public/`
+- **SPA routing support**: Catch-all route serves index.html for client-side routing
+- **Production scripts**: `npm run build` and `npm run prod` for easy deployment
+- **Clean separation**: Development (2 servers) vs Production (1 server) modes
+- **Files modified**: `package.json`, `api/server.js`, `vite.config.js`, `DEPLOYMENT.md` (added)
+- **Integration**: Express serves both API endpoints and built frontend assets
+
+### Dashboard Enhancement Suite (November 2024)
+- **Product table improvements**: Fixed column widths, text wrapping, responsive layout
+- **Timezone handling**: Auto-converts UTC to system timezone with clear formatting
+- **Product editing**: Modal dialog with title and threshold price fields
+- **Product deletion**: Delete from table or modal with confirmation dialogs
+- **Root domain display**: Shows clean domain (e.g., "amazon.com") under product title
+- **Threshold price tracking**: Optional price monitoring field stored in database
+- **Re-scrape functionality**: "🔄 Update" button per product to fetch fresh prices
+- **UI polish**: Removed unnecessary refresh button, cleaner header, better visual feedback
+- **Files modified**: `web/index.html`, `web/src/dashboard.js`, `web/src/api.js`, `api/server.js`
+- **Database migration**: Added `threshold_price` column to products table
+- **Integration**: Full CRUD operations with real-time UI updates
+
 ## Current Status Summary
 
 **✅ COMPLETED (Major Features):**
@@ -194,6 +216,10 @@
 - Success rate monitoring and analytics
 - Error classification and handling
 - Exponential backoff retry logic
+- Production-ready web dashboard with full CRUD
+- Product re-scraping for price updates
+- Threshold price monitoring
+- Responsive table layout with proper timezone handling
 
 **🔄 IN PROGRESS:**
 - Advanced browser behavior simulation
